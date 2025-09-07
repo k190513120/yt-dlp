@@ -148,6 +148,11 @@ def get_video_info():
                 'use_browser': True,
                 'browser': request.args.get('browser', 'chrome')
             }
+        elif request.args.get('cookies_from_browser'):
+            cookies_data = {
+                'use_browser': True,
+                'browser': request.args.get('cookies_from_browser', 'chrome')
+            }
     else:  # POST
         data = request.get_json() or {}
         url = data.get('url')
@@ -263,6 +268,11 @@ def get_available_formats():
                 'use_browser': True,
                 'browser': request.args.get('browser', 'chrome')
             }
+        elif request.args.get('cookies_from_browser'):
+            cookies_data = {
+                'use_browser': True,
+                'browser': request.args.get('cookies_from_browser', 'chrome')
+            }
     else:  # POST
         data = request.get_json() or {}
         url = data.get('url')
@@ -375,6 +385,11 @@ def get_stream_links():
             cookies_data = {
                 'use_browser': True,
                 'browser': request.args.get('browser', 'chrome')
+            }
+        elif request.args.get('cookies_from_browser'):
+            cookies_data = {
+                'use_browser': True,
+                'browser': request.args.get('cookies_from_browser', 'chrome')
             }
     else:  # POST
         data = request.get_json() or {}
