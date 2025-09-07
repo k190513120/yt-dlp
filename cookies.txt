@@ -1,0 +1,18 @@
+# Netscape HTTP Cookie File
+# This is a generated file! Do not edit.
+
+.youtube.com	TRUE	/	FALSE	1735689600	YSC	dQw4w9WgXcQ
+.youtube.com	TRUE	/	TRUE	1735689600	VISITOR_INFO1_LIVE	AbCdEfGhIjK
+.youtube.com	TRUE	/	TRUE	1735689600	CONSENT	YES+cb.20210328-17-p0.en+FX+667
+.youtube.com	TRUE	/	FALSE	1735689600	PREF	f4=4000000&hl=en&f5=30000
+.youtube.com	TRUE	/	TRUE	1735689600	SIDCC	APoG2W8xYz1234567890abcdefghijk
+.youtube.com	TRUE	/	TRUE	1735689600	__Secure-3PSIDCC	APoG2W8xYz1234567890abcdefghijk
+.youtube.com	TRUE	/	TRUE	1735689600	SID	g.a000abcdefghijklmnopqrstuvwxyz
+.youtube.com	TRUE	/	TRUE	1735689600	__Secure-1PSID	g.a000abcdefghijklmnopqrstuvwxyz
+.youtube.com	TRUE	/	TRUE	1735689600	__Secure-3PSID	g.a000abcdefghijklmnopqrstuvwxyz
+.youtube.com	TRUE	/	TRUE	1735689600	HSID	AbCdEfGhIjKlMnOp
+.youtube.com	TRUE	/	TRUE	1735689600	SSID	AbCdEfGhIjKlMnOp
+.youtube.com	TRUE	/	TRUE	1735689600	APISID	AbCdEfGhIjKlMnOp
+.youtube.com	TRUE	/	TRUE	1735689600	SAPISID	AbCdEfGhIjKlMnOp
+.youtube.com	TRUE	/	TRUE	1735689600	__Secure-1PAPISID	AbCdEfGhIjKlMnOp
+.youtube.com	TRUE	/	TRUE	1735689600	__Secure-3PAPISID	AbCdEfGhIjKlMnOp
