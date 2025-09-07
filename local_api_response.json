@@ -1,0 +1,26 @@
+{
+  "audio_stream": {
+    "abr": 129.835,
+    "acodec": "mp4a.40.2",
+    "ext": "m4a",
+    "filesize": 336518,
+    "format_id": "140",
+    "url": "https://rr5---sn-npoldn7e.googlevideo.com/videoplayback?expire=1757272007&ei=Z4O9aJPOKNCIqL8P94HdiQ0&ip=34.142.240.151&id=o-AAPIZzlauJiwMldMNyUT0QEpe4LKmrGB4HA3YYcz6hB0&itag=140&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&met=1757250407%2C&mh=Ho&mm=31%2C26&mn=sn-npoldn7e%2Csn-30a7yner&ms=au%2Conr&mv=m&mvi=5&pl=17&rms=au%2Cau&initcwndbps=792500&bui=ATw7iSWeE5sSK46D0XRIuvywDX_wf4o7QBggJG78Y56Z2OxzRJ_Umw-aP7wSw51ZKQv5upDlAgFPmY1x&spc=hcYD5auoWuPa&vprv=1&svpuc=1&mime=audio%2Fmp4&ns=FYJZ5_izXwy_eBOvR5i9iYYQ&rqh=1&gir=yes&clen=336518&dur=20.735&lmt=1689749835348923&mt=1757249911&fvip=2&keepalive=yes&fexp=51552689%2C51565115%2C51565681%2C51580968&c=TVHTML5_SIMPLY&sefc=1&txp=4532434&n=17obJc3d73vEMA&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cmime%2Cns%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&lsparams=met%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRAIgJSVl5vy4FL_VXiZhGyIer7bkuUBloCeiao5Dwy_bjI4CIHNJeBlN7ZCvPgCQ9pw3hdlif5DSQudvzs4JkknNoxHn&sig=AJfQdSswRAIgQ5dVsTBkL-Pg4g6uwLSS2uusgmldvKgkxRSL2qO9WtECIDN0thcpJ15tvz16HLWXalVR1mp8EljtuZf_Qzb8b1Hp"
+  },
+  "duration": 21,
+  "thumbnail": "https://i.ytimg.com/vi/_5_qqtq4hFA/hq720_2.jpg?sqp=-oaymwEoCIAKENAF8quKqQMcGADwAQH4Ac4FgAKACooCDAgAEAEYQCBGKHIwDw==&rs=AOn4CLBq8asn3UDvXoGEA_G8pCtCjWCqKg",
+  "title": "Samsung Watch or Apple Watch? #samsung #vs #apple #watch #compare #gertieinar",
+  "uploader": "GertiEinar",
+  "video_stream": {
+    "acodec": "mp4a.40.2",
+    "ext": "mp4",
+    "filesize": null,
+    "format_id": "18",
+    "fps": 30,
+    "height": 640,
+    "resolution": "360x640",
+    "url": "https://rr5---sn-npoldn7e.googlevideo.com/videoplayback?expire=1757272007&ei=Z4O9aJPOKNCIqL8P94HdiQ0&ip=34.142.240.151&id=o-AAPIZzlauJiwMldMNyUT0QEpe4LKmrGB4HA3YYcz6hB0&itag=18&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&met=1757250407%2C&mh=Ho&mm=31%2C26&mn=sn-npoldn7e%2Csn-30a7yner&ms=au%2Conr&mv=m&mvi=5&pl=17&rms=au%2Cau&initcwndbps=792500&bui=ATw7iSWf7tKw82Niu7C-FJjfuS5QgGra_raeSZ5Xa6aiNHp_N7Yk6cnSBQKUQ9JAxChyJ5a6Xn2oAIbi&spc=hcYD5dOp8uOS9tjW6WTw&vprv=1&svpuc=1&xtags=heaudio%3Dtrue&mime=video%2Fmp4&ns=k6Y1lEe7cFgV-SERqM-qSusQ&rqh=1&cnr=14&ratebypass=yes&dur=20.805&lmt=1689750102587717&mt=1757249911&fvip=2&fexp=51552689%2C51565115%2C51565681%2C51580968&c=TVHTML5_SIMPLY&sefc=1&txp=4530434&n=yw4YQebiD4C13Q&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cxtags%2Cmime%2Cns%2Crqh%2Ccnr%2Cratebypass%2Cdur%2Clmt&lsparams=met%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRAIgJSVl5vy4FL_VXiZhGyIer7bkuUBloCeiao5Dwy_bjI4CIHNJeBlN7ZCvPgCQ9pw3hdlif5DSQudvzs4JkknNoxHn&sig=AJfQdSswRAIgF2sxqfz3_9t7wMgEuMsDMJqVGrhHMDPZ1K7Yuy7sFs4CIG73j2TtiL78RI-DcH4JjtiP_kp61XuUduiJCMJuE-UI",
+    "vcodec": "avc1.42001E",
+    "width": 360
+  }
+}

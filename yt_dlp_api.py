@@ -60,6 +60,22 @@ def get_ydl_opts_with_cookies(base_opts=None, cookies_data=None):
     
     ydl_opts = base_opts.copy()
     
+    # 添加网络配置选项，强制使用IPv4以避免YouTube的IPv6访问限制
+    ydl_opts.update({
+        'force_ipv4': True,  # 强制使用IPv4
+        'socket_timeout': 30,  # 设置socket超时
+        'retries': 3,  # 重试次数
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        },
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web'],
+                'player_skip': ['webpage']
+            }
+        }
+    })
+    
     # 如果提供了cookies_data，使用用户提供的cookies
     if cookies_data:
         if cookies_data.get('use_browser'):
