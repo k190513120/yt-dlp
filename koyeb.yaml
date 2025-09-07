@@ -6,16 +6,18 @@ services:
       type: docker
       dockerfile: ./Dockerfile
     ports:
-      - port: 5000
+      - port: 8000
         protocol: http
     env:
-      - PORT=5000
+      - PORT=8000
       - FLASK_ENV=production
       - PYTHONUNBUFFERED=1
+      - FORCE_IPV4=true
+      - YT_DLP_FORCE_IPV4=1
     health_check:
       http:
         path: /health
-        port: 5000
+        port: 8000
       initial_delay_seconds: 30
       timeout_seconds: 10
       period_seconds: 30
