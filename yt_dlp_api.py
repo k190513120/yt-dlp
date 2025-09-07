@@ -521,7 +521,10 @@ def api_docs():
                 'description': '获取视频信息（不下载）',
                 'parameters': {
                     'url': '视频URL（必需）',
-                    'cookies': 'cookies配置（可选）'
+                    'cookies': 'cookies配置（可选）',
+                    'use_browser': '是否使用浏览器cookies (可选)',
+                    'browser': '浏览器类型 (chrome/firefox/edge/safari，默认chrome)',
+                    'cookies_from_browser': '直接指定浏览器类型获取cookies (可选)'
                 },
                 'example_with_cookies': {
                     'GET': '/api/info?url=VIDEO_URL&use_browser=true&browser=chrome',
