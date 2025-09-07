@@ -722,7 +722,7 @@ def health_check():
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'service': 'yt-dlp-api',
-        'version': '1.0.0'
+        'version': '1.2.2'
     })
 
 @app.route('/', methods=['GET'])
@@ -730,7 +730,7 @@ def api_docs():
     """API文档"""
     docs = {
         'name': 'yt-dlp HTTP API',
-        'version': '1.2.1',
+        'version': '1.2.2',
         'description': '基于yt-dlp的HTTP API服务，支持cookies认证',
         'cookies_support': {
             'description': '所有API端点都支持cookies认证以避免机器人验证',
