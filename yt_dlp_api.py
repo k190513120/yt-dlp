@@ -24,6 +24,35 @@ DOWNLOAD_DIR = "./downloads"
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
 
+# 默认YouTube cookies（Netscape格式）
+DEFAULT_YOUTUBE_COOKIES = """# Netscape HTTP Cookie File 
+# `http://curl.haxx.se/rfc/cookie_spec.html` 
+# This is a generated file!  Do not edit. 
+
+.youtube.com	TRUE	/	TRUE	1791795524	PREF	f4=4000000&tz=Asia.Shanghai 
+.youtube.com	TRUE	/	TRUE	1761199958	LOGIN_INFO	AFmmF2swRQIgNUB6ldF3L31sWs_9SclXXjyxszRxy4NzvLQtFt5U8r4CIQCFHwkaUYhrmOgzMZf27cxmu2jlTVUOzTr-lB6ktRQFTw:QUQ3MjNmeFFGa1NjM09uOFU4Z2ZiTkFfU2JUaGNGdGxxQmF2MkRYY3R6LVRsMmlEUGZtVHpqLXNWa3JobWcxVDFQekptR0VMRHZGTGt2STNMN21sT05nMlowX1lFSWNydGFONGMzUHBtVWFCVTduRkNQQUJ6d3RuZUVId2xmazBtRUFQb3lNUU9hMUpFUlBJZVhwaTNjcnlkOWt2bmJKeXln 
+.youtube.com	TRUE	/	FALSE	1790642899	HSID	AXfqeuUzr7J96ahXz 
+.youtube.com	TRUE	/	TRUE	1790642899	SSID	AgdmyGSM3MGwFbYex 
+.youtube.com	TRUE	/	FALSE	1790642899	APISID	6H6xpn_QLEOTXnHX/ALqMGGqeq02fzs3F7 
+.youtube.com	TRUE	/	TRUE	1790642899	SAPISID	J9A4cZJ8lhWF3Qly/AvxAwIROlDJuuTHUv 
+.youtube.com	TRUE	/	TRUE	1790642899	__Secure-1PAPISID	J9A4cZJ8lhWF3Qly/AvxAwIROlDJuuTHUv 
+.youtube.com	TRUE	/	TRUE	1790642899	__Secure-3PAPISID	J9A4cZJ8lhWF3Qly/AvxAwIROlDJuuTHUv 
+.youtube.com	TRUE	/	FALSE	1790642899	SID	g.a0000ggOvPuGe5ao1bVfYQlUkQYPvVtLhfdQvGcXxH_-PVSv5-bjqoWdtzWbx4awF8QhQcA2GAACgYKATQSARUSFQHGX2MiEs98yWefz3qlq5ff-F2IZxoVAUF8yKpu-7_RxQyXKzlHJiTbnY1S0076 
+.youtube.com	TRUE	/	TRUE	1790642899	__Secure-1PSID	g.a0000ggOvPuGe5ao1bVfYQlUkQYPvVtLhfdQvGcXxH_-PVSv5-bjGpNGyLLUWkJg47THarFHZwACgYKAf4SARUSFQHGX2Mi9UWqXH_kFfl8iV70FLHomBoVAUF8yKo9raZtWYOqQ7_r2qgVMBHE0076 
+.youtube.com	TRUE	/	TRUE	1790642899	__Secure-3PSID	g.a0000ggOvPuGe5ao1bVfYQlUkQYPvVtLhfdQvGcXxH_-PVSv5-bjElI8IhIS3_T4qS3ZzgwNRgACgYKAS0SARUSFQHGX2MiAqkoKrykjNb2DQQEnLHTGRoVAUF8yKrpABkm-dhrje0Ddpm0JbZo0076 
+.youtube.com	TRUE	/	FALSE	1787629522	SIDCC	AKEyXzWfaVWnMS_LkIjAgMyYUC3MPdBmxDeMPL8FpmELSUa5RxW7_pe8NdXW72TgdRLt8KBKog 
+.youtube.com	TRUE	/	TRUE	1787629522	__Secure-1PSIDCC	AKEyXzXYNjuNPxrKheBnqQgU2CFyU07N6t2TaeNvLzhcEKOlDVpRzsSycl0HktkXrgO-ugBxuQ 
+.youtube.com	TRUE	/	TRUE	1788578499	__Secure-3PSIDCC	AKEyXzXMmHqrsOrKfTWETMZzV_g3WjFLx9JxTaNtdw8E_09F4WtL4Eapm4sKix0dGN6zTvHCAzE 
+.youtube.com	TRUE	/	TRUE	1788771257	__Secure-1PSIDTS	sidts-CjEB5H03P-BNJTmSUdptheZdF-rZMXwUWdYSxstM9s_4Mj-5MmdtvinefjfbvTFT-bEuEAA 
+.youtube.com	TRUE	/	TRUE	1788771257	__Secure-3PSIDTS	sidts-CjEB5H03P-BNJTmSUdptheZdF-rZMXwUWdYSxstM9s_4Mj-5MmdtvinefjfbvTFT-bEuEAA 
+.youtube.com	TRUE	/	FALSE	1757235528	ST-3opvp5	session_logininfo=AFmmF2swRQIgNUB6ldF3L31sWs_9SclXXjyxszRxy4NzvLQtFt5U8r4CIQCFHwkaUYhrmOgzMZf27cxmu2jlTVUOzTr-lB6ktRQFTw%3AQUQ3MjNmeFFGa1NjM09uOFU4Z2ZiTkFfU2JUaGNGdGxxQmF2MkRYY3R6LVRsMmlEUGZtVHpqLXNWa3JobWcxVDFQekptR0VMRHZGTGt2STNMN21sT05nMlowX1lFSWNydGFONGMzUHBtVWFCVTduRkNQQUJ6d3RuZUVId2xmazBtRUFQb3lNUU9hMUpFUlBJZVhwaTNjcnlkOWt2bmJKeXln 
+.youtube.com	TRUE	/	FALSE	1757235528	ST-tladcw	session_logininfo=AFmmF2swRQIgNUB6ldF3L31sWs_9SclXXjyxszRxy4NzvLQtFt5U8r4CIQCFHwkaUYhrmOgzMZf27cxmu2jlTVUOzTr-lB6ktRQFTw%3AQUQ3MjNmeFFGa1NjM09uOFU4Z2ZiTkFfU2JUaGNGdGxxQmF2MkRYY3R6LVRsMmlEUGZtVHpqLXNWa3JobWcxVDFQekptR0VMRHZGTGt2STNMN21sT05nMlowX1lFSWNydGFONGMzUHBtVWFCVTduRkNQQUJ6d3RuZUVId2xmazBtRUFQb3lNUU9hMUpFUlBJZVhwaTNjcnlkOWt2bmJKeXln 
+.youtube.com	TRUE	/	FALSE	1757235528	ST-xuwub9	session_logininfo=AFmmF2swRQIgNUB6ldF3L31sWs_9SclXXjyxszRxy4NzvLQtFt5U8r4CIQCFHwkaUYhrmOgzMZf27cxmu2jlTVUOzTr-lB6ktRQFTw%3AQUQ3MjNmeFFGa1NjM09uOFU4Z2ZiTkFfU2JUaGNGdGxxQmF2MkRYY3R6LVRsMmlEUGZtVHpqLXNWa3JobWcxVDFQekptR0VMRHZGTGt2STNMN21sT05nMlowX1lFSWNydGFONGMzUHBtVWFCVTduRkNQQUJ6d3RuZUVId2xmazBtRUFQb3lNUU9hMUpFUlBJZVhwaTNjcnlkOWt2bmJKeXln 
+.youtube.com	TRUE	/	TRUE	1772787521	VISITOR_INFO1_LIVE	mMlisnI-vXU 
+.youtube.com	TRUE	/	TRUE	1772787521	VISITOR_PRIVACY_METADATA	CgJDThIEGgAgaQ%3D%3D 
+.youtube.com	TRUE	/	TRUE	0	YSC	UwSy650qzIM 
+.youtube.com	TRUE	/	TRUE	1772784727	__Secure-ROLLOUT_TOKEN	CIDYvPiSwumi4gEQ6cWEquH0iwMY6a_3g5rGjwM%3D"""
+
 def get_ydl_opts_with_cookies(base_opts=None, cookies_data=None):
     """获取包含cookies配置的yt-dlp选项"""
     if base_opts is None:
@@ -31,6 +60,7 @@ def get_ydl_opts_with_cookies(base_opts=None, cookies_data=None):
     
     ydl_opts = base_opts.copy()
     
+    # 如果提供了cookies_data，使用用户提供的cookies
     if cookies_data:
         if cookies_data.get('use_browser'):
             # 使用浏览器cookies
@@ -49,6 +79,16 @@ def get_ydl_opts_with_cookies(base_opts=None, cookies_data=None):
             # 使用cookies文件路径
             if os.path.exists(cookies_data['cookies_file']):
                 ydl_opts['cookiefile'] = cookies_data['cookies_file']
+    else:
+        # 如果没有提供cookies_data，使用默认的YouTube cookies
+        try:
+            # 创建临时cookies文件使用默认cookies
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+                f.write(DEFAULT_YOUTUBE_COOKIES)
+                ydl_opts['cookiefile'] = f.name
+            print("Using default YouTube cookies for authentication")
+        except Exception as e:
+            print(f"Warning: Failed to create default cookies file: {e}")
     
     return ydl_opts
 
@@ -91,7 +131,7 @@ def download_worker(task_id, url, format_id, cookies_data=None):
         download_tasks[task_id]['error'] = str(e)
     finally:
         # 清理临时cookies文件
-        if cookies_data and cookies_data.get('cookies_text') and 'cookiefile' in ydl_opts:
+        if 'cookiefile' in ydl_opts:
             try:
                 os.unlink(ydl_opts['cookiefile'])
             except:
@@ -195,7 +235,7 @@ def get_video_info():
         return jsonify({'error': str(e)}), 500
     finally:
         # 清理临时cookies文件
-        if cookies_data and cookies_data.get('cookies_text') and 'cookiefile' in ydl_opts:
+        if 'cookiefile' in ydl_opts:
             try:
                 os.unlink(ydl_opts['cookiefile'])
             except:
@@ -216,8 +256,7 @@ def start_download():
     task_id = str(uuid.uuid4())
     
     # 合并cookies配置到options中
-    if cookies_data:
-        options = get_ydl_opts_with_cookies(options, cookies_data)
+    options = get_ydl_opts_with_cookies(options, cookies_data)
     
     # 初始化任务状态
     download_tasks[task_id] = {
@@ -318,7 +357,7 @@ def get_available_formats():
         return jsonify({'error': str(e)}), 500
     finally:
         # 清理临时cookies文件
-        if cookies_data and cookies_data.get('cookies_text') and 'cookiefile' in ydl_opts:
+        if 'cookiefile' in ydl_opts:
             try:
                 os.unlink(ydl_opts['cookiefile'])
             except:
@@ -346,8 +385,7 @@ def download_audio_only():
     }
     
     # 合并cookies配置
-    if cookies_data:
-        audio_options = get_ydl_opts_with_cookies(audio_options, cookies_data)
+    audio_options = get_ydl_opts_with_cookies(audio_options, cookies_data)
     
     # 生成任务ID
     task_id = str(uuid.uuid4())
