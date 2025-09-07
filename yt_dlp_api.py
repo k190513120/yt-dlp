@@ -11,6 +11,8 @@ import os
 import threading
 import uuid
 from datetime import datetime
+import tempfile
+import json
 
 app = Flask(__name__)
 
@@ -22,9 +24,81 @@ DOWNLOAD_DIR = "./downloads"
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
 
+def get_ydl_opts_with_cookies(base_opts=None, cookies_data=None):
+    """获取包含cookies配置的yt-dlp选项"""
+    if base_opts is None:
+        base_opts = {}
+    
+    ydl_opts = base_opts.copy()
+    
+    if cookies_data:
+        if cookies_data.get('use_browser'):
+            # 使用浏览器cookies
+            browser = cookies_data.get('browser', 'chrome')
+            ydl_opts['cookiesfrombrowser'] = (browser, None, None, None)
+        elif cookies_data.get('cookies_text'):
+            # 使用cookies文本内容
+            try:
+                # 创建临时cookies文件
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+                    f.write(cookies_data['cookies_text'])
+                    ydl_opts['cookiefile'] = f.name
+            except Exception as e:
+                print(f"Warning: Failed to create cookies file: {e}")
+        elif cookies_data.get('cookies_file'):
+            # 使用cookies文件路径
+            if os.path.exists(cookies_data['cookies_file']):
+                ydl_opts['cookiefile'] = cookies_data['cookies_file']
+    
+    return ydl_opts
+
 def progress_hook(d):
     """下载进度回调函数"""
     task_id = d.get('task_id')
+    if task_id and task_id in download_tasks:
+        if d['status'] == 'downloading':
+            download_tasks[task_id]['status'] = 'downloading'
+            download_tasks[task_id]['progress'] = {
+                'downloaded_bytes': d.get('downloaded_bytes', 0),
+                'total_bytes': d.get('total_bytes', 0),
+                'speed': d.get('speed', 0),
+                'eta': d.get('eta', 0)
+            }
+        elif d['status'] == 'finished':
+            download_tasks[task_id]['status'] = 'completed'
+            download_tasks[task_id]['filename'] = d.get('filename')
+
+def download_worker(task_id, url, format_id, cookies_data=None):
+    """下载工作线程"""
+    try:
+        download_tasks[task_id]['status'] = 'downloading'
+        
+        base_opts = {
+            'format': format_id,
+            'outtmpl': os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
+            'progress_hooks': [lambda d: progress_hook_with_task_id(d, task_id)],
+        }
+        
+        ydl_opts = get_ydl_opts_with_cookies(base_opts, cookies_data)
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            download_tasks[task_id]['filename'] = ydl.prepare_filename(info)
+            download_tasks[task_id]['status'] = 'completed'
+            
+    except Exception as e:
+        download_tasks[task_id]['status'] = 'error'
+        download_tasks[task_id]['error'] = str(e)
+    finally:
+        # 清理临时cookies文件
+        if cookies_data and cookies_data.get('cookies_text') and 'cookiefile' in ydl_opts:
+            try:
+                os.unlink(ydl_opts['cookiefile'])
+            except:
+                pass
+
+def progress_hook_with_task_id(d, task_id):
+    """带任务ID的进度回调函数"""
     if task_id and task_id in download_tasks:
         if d['status'] == 'downloading':
             download_tasks[task_id]['status'] = 'downloading'
@@ -62,18 +136,33 @@ def download_video(url, task_id, options=None):
         download_tasks[task_id]['status'] = 'error'
         download_tasks[task_id]['error'] = str(e)
 
-@app.route('/api/info', methods=['GET'])
+@app.route('/api/info', methods=['GET', 'POST'])
 def get_video_info():
     """获取视频信息（不下载）"""
-    url = request.args.get('url')
+    if request.method == 'GET':
+        url = request.args.get('url')
+        cookies_data = None
+        # 支持通过查询参数传递简单的cookies配置
+        if request.args.get('use_browser'):
+            cookies_data = {
+                'use_browser': True,
+                'browser': request.args.get('browser', 'chrome')
+            }
+    else:  # POST
+        data = request.get_json() or {}
+        url = data.get('url')
+        cookies_data = data.get('cookies')
+    
     if not url:
         return jsonify({'error': '缺少URL参数'}), 400
     
     try:
-        ydl_opts = {
+        base_opts = {
             'quiet': True,
             'no_warnings': True,
         }
+        
+        ydl_opts = get_ydl_opts_with_cookies(base_opts, cookies_data)
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -99,6 +188,13 @@ def get_video_info():
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # 清理临时cookies文件
+        if cookies_data and cookies_data.get('cookies_text') and 'cookiefile' in ydl_opts:
+            try:
+                os.unlink(ydl_opts['cookiefile'])
+            except:
+                pass
 
 @app.route('/api/download', methods=['POST'])
 def start_download():
@@ -109,9 +205,14 @@ def start_download():
     
     url = data['url']
     options = data.get('options', {})
+    cookies_data = data.get('cookies')
     
     # 生成任务ID
     task_id = str(uuid.uuid4())
+    
+    # 合并cookies配置到options中
+    if cookies_data:
+        options = get_ydl_opts_with_cookies(options, cookies_data)
     
     # 初始化任务状态
     download_tasks[task_id] = {
@@ -150,19 +251,34 @@ def list_tasks():
         'total': len(download_tasks)
     })
 
-@app.route('/api/formats', methods=['GET'])
+@app.route('/api/formats', methods=['GET', 'POST'])
 def get_available_formats():
     """获取可用的下载格式"""
-    url = request.args.get('url')
+    if request.method == 'GET':
+        url = request.args.get('url')
+        cookies_data = None
+        # 支持通过查询参数传递简单的cookies配置
+        if request.args.get('use_browser'):
+            cookies_data = {
+                'use_browser': True,
+                'browser': request.args.get('browser', 'chrome')
+            }
+    else:  # POST
+        data = request.get_json() or {}
+        url = data.get('url')
+        cookies_data = data.get('cookies')
+    
     if not url:
         return jsonify({'error': '缺少URL参数'}), 400
     
     try:
-        ydl_opts = {
+        base_opts = {
             'quiet': True,
             'no_warnings': True,
             'listformats': True
         }
+        
+        ydl_opts = get_ydl_opts_with_cookies(base_opts, cookies_data)
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -190,6 +306,13 @@ def get_available_formats():
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # 清理临时cookies文件
+        if cookies_data and cookies_data.get('cookies_text') and 'cookiefile' in ydl_opts:
+            try:
+                os.unlink(ydl_opts['cookiefile'])
+            except:
+                pass
 
 @app.route('/api/audio', methods=['POST'])
 def download_audio_only():
@@ -199,6 +322,7 @@ def download_audio_only():
         return jsonify({'error': '缺少URL参数'}), 400
     
     url = data['url']
+    cookies_data = data.get('cookies')
     
     # 音频专用选项
     audio_options = {
@@ -210,6 +334,10 @@ def download_audio_only():
             'preferredquality': '192',
         }]
     }
+    
+    # 合并cookies配置
+    if cookies_data:
+        audio_options = get_ydl_opts_with_cookies(audio_options, cookies_data)
     
     # 生成任务ID
     task_id = str(uuid.uuid4())
@@ -236,18 +364,33 @@ def download_audio_only():
         'message': '音频下载任务已创建'
     })
 
-@app.route('/api/stream-links', methods=['GET'])
+@app.route('/api/stream-links', methods=['GET', 'POST'])
 def get_stream_links():
     """获取视频的直接播放链接（不下载）"""
-    url = request.args.get('url')
+    if request.method == 'GET':
+        url = request.args.get('url')
+        cookies_data = None
+        # 支持通过查询参数传递简单的cookies配置
+        if request.args.get('use_browser'):
+            cookies_data = {
+                'use_browser': True,
+                'browser': request.args.get('browser', 'chrome')
+            }
+    else:  # POST
+        data = request.get_json() or {}
+        url = data.get('url')
+        cookies_data = data.get('cookies')
+    
     if not url:
         return jsonify({'error': '缺少URL参数'}), 400
     
     try:
-        ydl_opts = {
+        base_opts = {
             'quiet': True,
             'no_warnings': True,
         }
+        
+        ydl_opts = get_ydl_opts_with_cookies(base_opts, cookies_data)
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -307,6 +450,13 @@ def get_stream_links():
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        # 清理临时cookies文件
+        if cookies_data and cookies_data.get('cookies_text') and 'cookiefile' in ydl_opts:
+            try:
+                os.unlink(ydl_opts['cookiefile'])
+            except:
+                pass
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -319,27 +469,105 @@ def health_check():
     })
 
 @app.route('/', methods=['GET'])
-def index():
+def api_docs():
     """API文档"""
     docs = {
         'name': 'yt-dlp HTTP API',
-        'version': '1.0.0',
-        'description': '通过HTTP接口调用yt-dlp功能',
-        'endpoints': {
-            'GET /health': '健康检查',
-            'GET /api/info?url=<video_url>': '获取视频信息（不下载）',
-            'POST /api/download': '开始下载视频 {"url": "<video_url>", "options": {}}',
-            'GET /api/status/<task_id>': '获取下载状态',
-            'GET /api/tasks': '列出所有任务',
-            'GET /api/formats?url=<video_url>': '获取可用的下载格式',
-            'POST /api/audio': '仅下载音频 {"url": "<video_url>"}',
-            'GET /api/stream-links?url=<video_url>': '获取视频直接播放链接（不下载）'
+        'version': '1.1.0',
+        'description': '基于yt-dlp的HTTP API服务，支持cookies认证',
+        'cookies_support': {
+            'description': '所有API端点都支持cookies认证以避免机器人验证',
+            'methods': {
+                'browser_cookies': {
+                    'description': '从浏览器导入cookies',
+                    'usage': {
+                        'GET': '在URL参数中添加 use_browser=true&browser=chrome',
+                        'POST': '在请求体中添加 cookies: {"use_browser": true, "browser": "chrome"}'
+                    },
+                    'supported_browsers': ['chrome', 'firefox', 'safari', 'edge']
+                },
+                'cookies_file': {
+                    'description': '使用cookies文件',
+                    'usage': {
+                        'POST': '在请求体中添加 cookies: {"cookies_file": "/path/to/cookies.txt"}'
+                    }
+                },
+                'cookies_text': {
+                    'description': '直接传递cookies文本内容',
+                    'usage': {
+                        'POST': '在请求体中添加 cookies: {"cookies_text": "cookies内容"}'
+                    }
+                }
+            }
         },
-        'examples': {
-            'get_info': 'curl "http://localhost:5000/api/info?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ"',
-            'download': 'curl -X POST -H "Content-Type: application/json" -d \'{"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "options": {"format": "best[height<=720]"}}\' "http://localhost:5000/api/download"',
-            'check_status': 'curl "http://localhost:5000/api/status/<task_id>"',
-            'get_stream_links': 'curl "http://localhost:5000/api/stream-links?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ"'
+        'endpoints': {
+            '/api/info': {
+                'methods': ['GET', 'POST'],
+                'description': '获取视频信息（不下载）',
+                'parameters': {
+                    'url': '视频URL（必需）',
+                    'cookies': 'cookies配置（可选）'
+                },
+                'example_with_cookies': {
+                    'GET': '/api/info?url=VIDEO_URL&use_browser=true&browser=chrome',
+                    'POST': '{"url": "VIDEO_URL", "cookies": {"use_browser": true, "browser": "chrome"}}'
+                }
+            },
+            '/api/download': {
+                'method': 'POST',
+                'description': '开始下载视频',
+                'body': {
+                    'url': '视频URL（必需）',
+                    'format': '格式ID（可选，默认为best）',
+                    'cookies': 'cookies配置（可选）'
+                }
+            },
+            '/api/status/<task_id>': {
+                'method': 'GET',
+                'description': '获取下载任务状态'
+            },
+            '/api/tasks': {
+                'method': 'GET',
+                'description': '列出所有下载任务'
+            },
+            '/api/formats': {
+                'methods': ['GET', 'POST'],
+                'description': '获取视频的所有可用格式',
+                'parameters': {
+                    'url': '视频URL（必需）',
+                    'cookies': 'cookies配置（可选）'
+                }
+            },
+            '/api/audio': {
+                'method': 'POST',
+                'description': '仅下载音频',
+                'body': {
+                    'url': '视频URL（必需）',
+                    'cookies': 'cookies配置（可选）'
+                }
+            },
+            '/api/stream-links': {
+                'methods': ['GET', 'POST'],
+                'description': '获取视频的直接播放链接（不下载）',
+                'parameters': {
+                    'url': '视频URL（必需）',
+                    'cookies': 'cookies配置（可选）'
+                },
+                'example_with_cookies': {
+                    'GET': '/api/stream-links?url=VIDEO_URL&use_browser=true&browser=chrome',
+                    'POST': '{"url": "VIDEO_URL", "cookies": {"use_browser": true, "browser": "chrome"}}'
+                }
+            },
+            '/health': {
+                'method': 'GET',
+                'description': '健康检查'
+            }
+        },
+        'troubleshooting': {
+            'bot_detection': {
+                'error': 'Sign in to confirm you\'re not a bot',
+                'solution': '使用cookies认证，推荐使用browser_cookies方法从浏览器导入cookies'
+            }
         }
     }
     return jsonify(docs)
