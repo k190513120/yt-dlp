@@ -730,7 +730,7 @@ def api_docs():
     """API文档"""
     docs = {
         'name': 'yt-dlp HTTP API',
-        'version': '1.1.0',
+        'version': '1.2.0',
         'description': '基于yt-dlp的HTTP API服务，支持cookies认证',
         'cookies_support': {
             'description': '所有API端点都支持cookies认证以避免机器人验证',
