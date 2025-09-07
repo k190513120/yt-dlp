@@ -5,7 +5,7 @@ yt-dlp HTTP API 服务器
 提供REST API接口来调用yt-dlp功能
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 import yt_dlp
 import os
 import threading
@@ -487,6 +487,210 @@ def get_stream_links():
                 } if best_audio else None,
                 'video_stream': {
                     'url': best_video.get('url') if best_video else None,
+                    'format_id': best_video.get('format_id') if best_video else None,
+                    'ext': best_video.get('ext') if best_video else None,
+                    'resolution': best_video.get('resolution') if best_video else None,
+                    'height': best_video.get('height') if best_video else None,
+                    'width': best_video.get('width') if best_video else None,
+                    'vcodec': best_video.get('vcodec') if best_video else None,
+                    'acodec': best_video.get('acodec') if best_video else None,
+                    'fps': best_video.get('fps') if best_video else None,
+                    'filesize': best_video.get('filesize') if best_video else None
+                } if best_video else None
+            }
+            
+            return jsonify(result)
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        # 清理临时cookies文件
+        if cookies_data and cookies_data.get('cookies_text') and 'cookiefile' in ydl_opts:
+            try:
+                os.unlink(ydl_opts['cookiefile'])
+            except:
+                pass
+
+@app.route('/api/stream/<path:video_id>', methods=['GET'])
+def stream_video(video_id):
+    """直接流式传输视频内容"""
+    try:
+        # 从查询参数获取格式信息
+        format_id = request.args.get('format', 'best')
+        
+        # 构建YouTube URL
+        youtube_url = f"https://www.youtube.com/watch?v={video_id}"
+        
+        # 配置yt-dlp选项
+        ydl_opts = {
+            'format': format_id,
+            'quiet': True,
+            'no_warnings': True,
+            'extract_flat': False,
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # 获取视频信息
+            info = ydl.extract_info(youtube_url, download=False)
+            
+            if not info:
+                return jsonify({'error': '无法获取视频信息'}), 404
+            
+            # 获取最佳格式的URL
+            if 'url' in info:
+                video_url = info['url']
+            elif 'formats' in info and info['formats']:
+                # 选择最佳格式
+                formats = info['formats']
+                best_format = None
+                for fmt in formats:
+                    if fmt.get('vcodec') != 'none' and fmt.get('acodec') != 'none':
+                        best_format = fmt
+                        break
+                if not best_format and formats:
+                    best_format = formats[-1]
+                
+                if best_format and 'url' in best_format:
+                    video_url = best_format['url']
+                else:
+                    return jsonify({'error': '无法找到可用的视频流'}), 404
+            else:
+                return jsonify({'error': '无法找到视频URL'}), 404
+            
+            # 使用yt-dlp内置的下载功能获取视频数据
+            def generate():
+                try:
+                    # 创建临时的yt-dlp实例用于流式下载
+                    stream_opts = {
+                        'format': format_id,
+                        'quiet': True,
+                        'no_warnings': True,
+                    }
+                    
+                    with yt_dlp.YoutubeDL(stream_opts) as stream_ydl:
+                        # 直接获取视频数据流
+                        headers = {
+                            'User-Agent': 'yt-dlp/2023.09.24',
+                            'Accept': '*/*',
+                        }
+                        
+                        import requests
+                        response = requests.get(video_url, headers=headers, stream=True, timeout=30)
+                        
+                        if response.status_code == 200:
+                            for chunk in response.iter_content(chunk_size=8192):
+                                if chunk:
+                                    yield chunk
+                        else:
+                            yield b''
+                            
+                except Exception as e:
+                    print(f"流式下载错误: {e}")
+                    yield b''
+            
+            # 设置适当的Content-Type
+            content_type = 'video/mp4'
+            if 'ext' in info:
+                ext = info['ext']
+                if ext == 'webm':
+                    content_type = 'video/webm'
+                elif ext == 'm4a':
+                    content_type = 'audio/mp4'
+                elif ext == 'mp3':
+                    content_type = 'audio/mpeg'
+            
+            flask_response = Response(generate(), content_type=content_type)
+            flask_response.headers['Cache-Control'] = 'no-cache'
+            flask_response.headers['Accept-Ranges'] = 'bytes'
+            
+            return flask_response
+            
+    except Exception as e:
+        return jsonify({'error': f'视频流失败: {str(e)}'}), 500
+
+@app.route('/api/playable-links', methods=['GET', 'POST'])
+def get_playable_links():
+    """获取可直接播放的视频链接（通过代理）"""
+    if request.method == 'GET':
+        url = request.args.get('url')
+        cookies_data = None
+        # 支持通过查询参数传递简单的cookies配置
+        if request.args.get('use_browser'):
+            cookies_data = {
+                'use_browser': True,
+                'browser': request.args.get('browser', 'chrome')
+            }
+        elif request.args.get('cookies_from_browser'):
+            cookies_data = {
+                'use_browser': True,
+                'browser': request.args.get('cookies_from_browser', 'chrome')
+            }
+    else:  # POST
+        data = request.get_json() or {}
+        url = data.get('url')
+        cookies_data = data.get('cookies')
+    
+    if not url:
+        return jsonify({'error': '缺少URL参数'}), 400
+    
+    try:
+        base_opts = {
+            'quiet': True,
+            'no_warnings': True,
+        }
+        
+        ydl_opts = get_ydl_opts_with_cookies(base_opts, cookies_data)
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            
+            # 提取视频ID
+            video_id = info.get('id', '')
+            
+            # 获取所有格式
+            formats = info.get('formats', [])
+            
+            # 找到最佳音频流
+            best_audio = None
+            for f in formats:
+                if f.get('acodec') != 'none' and f.get('vcodec') == 'none':  # 纯音频
+                    if not best_audio or (f.get('abr', 0) > best_audio.get('abr', 0)):
+                        best_audio = f
+            
+            # 找到最佳视频流（带音频）
+            best_video = None
+            for f in formats:
+                if f.get('vcodec') != 'none' and f.get('acodec') != 'none':  # 视频+音频
+                    if not best_video or (f.get('height', 0) > best_video.get('height', 0)):
+                        best_video = f
+            
+            # 如果没有找到带音频的视频，找最佳纯视频
+            if not best_video:
+                for f in formats:
+                    if f.get('vcodec') != 'none':  # 纯视频
+                        if not best_video or (f.get('height', 0) > best_video.get('height', 0)):
+                            best_video = f
+            
+            # 获取服务器基础URL
+            base_url = request.url_root.rstrip('/')
+            
+            result = {
+                'title': info.get('title'),
+                'duration': info.get('duration'),
+                'uploader': info.get('uploader'),
+                'thumbnail': info.get('thumbnail'),
+                'audio_stream': {
+                    'playable_url': f"{base_url}/api/stream/{video_id}?format={best_audio.get('format_id', 'bestaudio')}" if best_audio else None,
+                    'original_url': best_audio.get('url') if best_audio else None,
+                    'format_id': best_audio.get('format_id') if best_audio else None,
+                    'ext': best_audio.get('ext') if best_audio else None,
+                    'abr': best_audio.get('abr') if best_audio else None,
+                    'acodec': best_audio.get('acodec') if best_audio else None,
+                    'filesize': best_audio.get('filesize') if best_audio else None
+                } if best_audio else None,
+                'video_stream': {
+                    'playable_url': f"{base_url}/api/stream/{video_id}?format={best_video.get('format_id', 'best')}" if best_video else None,
+                    'original_url': best_video.get('url') if best_video else None,
                     'format_id': best_video.get('format_id') if best_video else None,
                     'ext': best_video.get('ext') if best_video else None,
                     'resolution': best_video.get('resolution') if best_video else None,
