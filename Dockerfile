@@ -7,13 +7,15 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # 复制依赖文件
 COPY requirements.txt .
 
-# 安装Python依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 安装Python依赖 (CPU版本的torch)
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.0.1+cpu && \
+    pip install --no-cache-dir Flask==2.3.3 yt-dlp==2023.7.6 requests==2.31.0 openai-whisper==20230625 numpy==1.24.3
 
 # 复制应用代码
 COPY yt_dlp_api.py .
