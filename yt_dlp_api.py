@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime
 import tempfile
 import json
-import whisper_ctranslate2
+import whisper
 import io
 import warnings
 
@@ -839,7 +839,7 @@ def transcribe_video():
             
             # 加载Whisper模型
             try:
-                model = whisper_ctranslate2.load_model(model_size)
+                model = whisper.load_model(model_size)
             except Exception as e:
                 return jsonify({'error': f'加载Whisper模型失败: {str(e)}'}), 500
             
