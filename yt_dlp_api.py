@@ -13,6 +13,12 @@ import uuid
 from datetime import datetime
 import tempfile
 import json
+import whisper
+import io
+import warnings
+
+# 忽略Whisper的警告信息
+warnings.filterwarnings("ignore", category=UserWarning, module="whisper")
 
 app = Flask(__name__)
 
@@ -731,6 +737,167 @@ def get_playable_links():
             except:
                 pass
 
+@app.route('/api/transcribe', methods=['GET', 'POST'])
+def transcribe_video():
+    """将YouTube视频音频转换为文字"""
+    if request.method == 'GET':
+        url = request.args.get('url')
+        language = request.args.get('language', 'auto')
+        model_size = request.args.get('model', 'base')
+        cookies_data = None
+        # 支持通过查询参数传递简单的cookies配置
+        if request.args.get('use_browser'):
+            cookies_data = {
+                'use_browser': True,
+                'browser': request.args.get('browser', 'chrome')
+            }
+        elif request.args.get('cookies_from_browser'):
+            cookies_data = {
+                'use_browser': True,
+                'browser': request.args.get('cookies_from_browser', 'chrome')
+            }
+    else:  # POST
+        data = request.get_json() or {}
+        url = data.get('url')
+        language = data.get('language', 'auto')
+        model_size = data.get('model', 'base')
+        cookies_data = data.get('cookies')
+    
+    if not url:
+        return jsonify({'error': '缺少URL参数'}), 400
+    
+    # 验证模型大小参数
+    valid_models = ['tiny', 'base', 'small', 'medium', 'large']
+    if model_size not in valid_models:
+        model_size = 'base'
+    
+    try:
+        # 配置yt-dlp选项以提取音频
+        base_opts = {
+            'format': 'bestaudio/best',
+            'quiet': True,
+            'no_warnings': True,
+            'extractaudio': True,
+            'audioformat': 'wav',
+            'outtmpl': '-',  # 输出到stdout
+        }
+        
+        ydl_opts = get_ydl_opts_with_cookies(base_opts, cookies_data)
+        
+        # 首先获取视频信息
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            
+            if not info:
+                return jsonify({'error': '无法获取视频信息'}), 404
+            
+            video_title = info.get('title', 'Unknown')
+            video_duration = info.get('duration', 0)
+            
+            # 检查视频时长（限制在30分钟内以节省资源）
+            if video_duration and video_duration > 1800:  # 30分钟
+                return jsonify({
+                    'error': '视频时长超过30分钟，为节省服务器资源，请使用较短的视频',
+                    'duration': video_duration,
+                    'max_duration': 1800
+                }), 400
+        
+        # 创建临时文件来存储音频
+        with tempfile.NamedTemporaryFile(suffix='.%(ext)s', delete=False) as temp_audio:
+            temp_template = temp_audio.name.replace('.%(ext)s', '')
+        
+        try:
+            # 下载音频到临时文件
+            audio_opts = ydl_opts.copy()
+            audio_opts['format'] = 'bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio/best[height<=480]'
+            audio_opts['outtmpl'] = temp_template + '.%(ext)s'
+            audio_opts['postprocessors'] = [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '128',
+            }]
+            audio_opts['extract_flat'] = False
+            
+            with yt_dlp.YoutubeDL(audio_opts) as ydl:
+                ydl.download([url])
+            
+            # 查找实际下载的音频文件
+            audio_file = None
+            for ext in ['.mp3', '.m4a', '.wav', '.webm', '.opus', '.ogg']:
+                potential_file = temp_template + ext
+                if os.path.exists(potential_file):
+                    audio_file = potential_file
+                    break
+            
+            if not audio_file or not os.path.exists(audio_file):
+                return jsonify({'error': '音频下载失败'}), 500
+            
+            # 检查文件大小
+            file_size = os.path.getsize(audio_file)
+            if file_size == 0:
+                return jsonify({'error': '音频文件为空'}), 500
+            
+            # 加载Whisper模型
+            try:
+                model = whisper.load_model(model_size)
+            except Exception as e:
+                return jsonify({'error': f'加载Whisper模型失败: {str(e)}'}), 500
+            
+            # 转录音频
+            try:
+                # 设置语言参数
+                transcribe_options = {}
+                if language != 'auto':
+                    transcribe_options['language'] = language
+                
+                result = model.transcribe(audio_file, **transcribe_options)
+                
+                # 构建响应
+                response_data = {
+                    'title': video_title,
+                    'duration': video_duration,
+                    'language': result.get('language', 'unknown'),
+                    'text': result['text'].strip(),
+                    'segments': [{
+                        'start': segment['start'],
+                        'end': segment['end'],
+                        'text': segment['text'].strip()
+                    } for segment in result.get('segments', [])],
+                    'model_used': model_size,
+                    'processing_info': {
+                        'audio_extracted': True,
+                        'transcription_completed': True
+                    }
+                }
+                
+                return jsonify(response_data)
+                
+            except Exception as e:
+                return jsonify({'error': f'音频转录失败: {str(e)}'}), 500
+            
+        finally:
+            # 清理临时文件
+            try:
+                if audio_file and os.path.exists(audio_file):
+                    os.unlink(audio_file)
+                # 清理可能的其他临时文件
+                for ext in ['.mp3', '.m4a', '.wav', '.webm', '.opus', '.ogg']:
+                    temp_file = temp_template + ext
+                    if os.path.exists(temp_file):
+                        os.unlink(temp_file)
+            except:
+                pass
+            
+    except Exception as e:
+        return jsonify({'error': f'处理失败: {str(e)}'}), 500
+    finally:
+        # 清理临时cookies文件
+        if cookies_data and cookies_data.get('cookies_text') and 'cookiefile' in ydl_opts:
+            try:
+                os.unlink(ydl_opts['cookiefile'])
+            except:
+                pass
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """健康检查端点"""
@@ -738,7 +905,7 @@ def health_check():
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'service': 'yt-dlp-api',
-        'version': '1.2.2'
+        'version': '1.2.3'
     })
 
 @app.route('/', methods=['GET'])
@@ -832,6 +999,33 @@ def api_docs():
                 'example_with_cookies': {
                     'GET': '/api/stream-links?url=VIDEO_URL&use_browser=true&browser=chrome',
                     'POST': '{"url": "VIDEO_URL", "cookies": {"use_browser": true, "browser": "chrome"}}'
+                }
+            },
+            '/api/transcribe': {
+                'methods': ['GET', 'POST'],
+                'description': '将YouTube视频音频转换为文字（使用OpenAI Whisper）',
+                'parameters': {
+                    'url': '视频URL（必需）',
+                    'language': '语言代码（可选，默认auto自动检测）',
+                    'model': 'Whisper模型大小（可选，tiny/base/small/medium/large，默认base）',
+                    'cookies': 'cookies配置（可选）'
+                },
+                'limitations': {
+                    'max_duration': '30分钟（1800秒）',
+                    'recommended_model': 'base（平衡速度和准确性）'
+                },
+                'example_with_cookies': {
+                    'GET': '/api/transcribe?url=VIDEO_URL&language=zh&model=base&use_browser=true',
+                    'POST': '{"url": "VIDEO_URL", "language": "zh", "model": "base", "cookies": {"use_browser": true}}'
+                },
+                'response_format': {
+                    'title': '视频标题',
+                    'duration': '视频时长（秒）',
+                    'language': '检测到的语言',
+                    'text': '完整转录文本',
+                    'segments': '分段转录结果（包含时间戳）',
+                    'model_used': '使用的Whisper模型',
+                    'processing_info': '处理状态信息'
                 }
             },
             '/health': {
