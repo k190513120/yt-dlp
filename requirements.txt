@@ -1,6 +1,6 @@
 Flask==2.3.3
 yt-dlp==2023.7.6
 requests==2.31.0
-openai-whisper==20230625
+openai-whisper==20231117
 torch==2.0.1+cpu
 numpy==1.24.3
